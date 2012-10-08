@@ -1,0 +1,23 @@
+{
+  "name": "dumbdb",
+  "version": "0.0.1",
+  "description": "dumbdb ain't couchdb - it's an attempt to do the simplest nodb possible, using just core JS stuff.",
+  "main": "dumbdb.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/JosePedroDias/dumbdb.git"
+  },
+  "keywords": [
+    "nodb",
+    "key-value-store",
+    "node.js"
+  ],
+  "author": "José Pedro Dias <jose.pedro.dias@gmail.com>",
+  "license": "BSD",
+  "engines": { "node": "*" },
+  "dependencies": {
+  }
+}
