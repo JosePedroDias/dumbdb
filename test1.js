@@ -99,14 +99,15 @@ var util = require('util');
 
 heap();
 
-var d = require('dumbdb')();
+var d = require('./dumbdb')({verbose:true});
 
-d.create('person', function(err, p) {
-//d.open('person', function(err, p) {
+d.open('person', true, function(err, p) {
 
 	if (err) { return console.log(err); }
 
 	heap();
+
+
 
 	if (1) {
 		var g;
@@ -119,50 +120,63 @@ d.create('person', function(err, p) {
 			});
 		}
 	}
-	else {
-		//console.log( p.get('4a') );
+	
 
-		/*var v = p.mapReduce(
-			function(d) {
-				if (d.age < 7 && d.gender === 'male') {
-					this.emit(null, d.name);
-				}
-			}
-		);
-		console.log(v);*/
 
-		/*var v = p.mapReduce(
-			function(d) {
-				if (d.age < 7 && d.gender === 'male') {
-					this.emit(null, d.age);
-				}
-			},
-			function(k, v) {
-				return this.avg(v);
-			}
-		);
-		console.log(v);*/
+	console.log( p.get('4a') );
 
-		var v = p.mapReduce(
-			function(d) {
-				//if (d.name[0] === 'D') {
-					this.emit( simpleString(d.name.split(' ')[0]), 1);
-				//}
-			},
-			function(k, v) {
-				return this.sum(v);
+	//return;
+
+
+
+	var v = p.mapReduce(
+		function(d) {
+			if (d.age < 7 && d.gender === 'male') {
+				this.emit(null, d.name);
 			}
-		);
-		console.log(v);
-	}
+		}
+	);
+	console.log(v);
+
+
+
+	v = p.mapReduce(
+		function(d) {
+			if (d.age < 7 && d.gender === 'male') {
+				this.emit(null, d.age);
+			}
+		},
+		function(k, v) {
+			return this.avg(v);
+		}
+	);
+	console.log(v);
+
+
+
+	v = p.mapReduce(
+		function(d) {
+			//if (d.name[0] === 'D') {
+				this.emit( simpleString(d.name.split(' ')[0]), 1);
+			//}
+		},
+		function(k, v) {
+			return this.sum(v);
+		}
+	);
+	console.log(v);
 
 
 
 	//console.log( p.all() );
 
+
+
+	// TODO NOT WORKING?!
 	setTimeout(function() {
+		console.log('Exiting...');
 		heap();
-		p.close();
-	}, 1000);
+		this.close();
+	}.bind(p), 1000);
 
 });
