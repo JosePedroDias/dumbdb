@@ -99,7 +99,7 @@ var util = require('util');
 
 heap();
 
-var d = require('../../lib/dumbdb')();
+var d = require('dumbdb')();
 
 d.create('person', function(err, p) {
 //d.open('person', function(err, p) {

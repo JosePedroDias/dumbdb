@@ -1,6 +1,10 @@
 (function() {
 
-    /*jshint */
+    'use strict';
+
+    
+
+    /*jshint node:true */
     /*global */
 
     var fs = require('fs');
