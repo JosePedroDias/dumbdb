@@ -99,7 +99,9 @@ var util = require('util');
 
 heap();
 
-var d = require('./dumbdb')({verbose:true});
+var d = require('./dumbdb')({
+	verbose:true
+});
 
 d.open('person', true, function(err, p) {
 

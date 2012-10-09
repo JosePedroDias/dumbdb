@@ -160,8 +160,8 @@
             return id;
         },
 
-        _save: function(cb) {
-            if (!this._isDirty) { return cb ? cb(null) : null; }
+        _save: function(force, cb) {
+            if (!this._isDirty && !force) { return cb ? cb(null) : null; }
             if (this._cfg.verbose) { start(); }
             this._isDirty = false;
             fs.writeFile(this._path, JSON.stringify(this._d), function(err) {
@@ -173,6 +173,7 @@
                 if (this._dying) {
                     delete this._d;
                 }
+                if (cb) { cb(null); }
             }.bind(this));
         },
 
@@ -228,7 +229,7 @@
                 coll = new DumbdbCollection(collName, path, data || {}, that._cfg);
                 that._collections[collName] = coll;
 
-                if (!isOpening) { coll._save(); }
+                if (!isOpening) { coll._save(true); }
 
                 return cb(null, coll);
             };
@@ -243,6 +244,7 @@
                             if (that._cfg.verbose) {
                                 console.log('called open() on inexistent collection, creating instead...');
                             }
+                            isOpening = false;
                             return thenDo();
                         }
 
