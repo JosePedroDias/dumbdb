@@ -33,6 +33,7 @@ the require returns a function which can receive configuration options, namely:
 
   * saveEveryNSeconds  (defaults to 5)
   * rootDir            (defaults to __dirname, i.e., the current directory)
+  * verbose            (defaults to false)
 
 from that, you can either open or create a collection. (will be stored as `<collection_name>.ddb`)
 
