@@ -1,6 +1,6 @@
 {
   "name": "dumbdb",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "dumbdb ain't couchdb - it's an attempt to do the simplest nodb possible, using just core JS stuff.",
   "main": "dumbdb.js",
   "scripts": {

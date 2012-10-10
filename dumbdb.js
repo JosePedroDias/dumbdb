@@ -268,7 +268,7 @@
                 fs.stat(path, function(err, stats) {
                     if (err) {
                         if (!allowFallback) {
-                            return cb('Collection ' + collName + ' already exists!');
+                            return cb('Collection ' + collName + ' already exists or no previleges to write in dir/file!');
                         }
                         else {
                             if (that._cfg.verbose) {
