@@ -58,6 +58,13 @@
 
         put: function(o) {
             if (!('_id' in o)) { o._id = this._getId(); }
+            if (this._cfg.timestamps) {
+                var ts = new Date().valueOf();
+                if (!('_createdAt' in o)) {
+                    o._createdAt = ts;
+                }
+                o._modifiedAt = ts;
+            }
             this._d[o._id] = o;
             this._isDirty = true;
             return o;
@@ -207,7 +214,8 @@
         this._cfg = defaults({
             saveEveryNSeconds:  5,
             rootDir:            __dirname,
-            verbose:            false
+            verbose:            false,
+            timestamps:         true
         }, cfg);
     };
 

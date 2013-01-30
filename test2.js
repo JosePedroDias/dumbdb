@@ -1,10 +1,32 @@
 //var d = require('dumbdb')({
 var d = require('./dumbdb')({
-	verbose: true,
-	//rootDir: __dirname + '/bogusDir'
+	verbose: true
 });
 
-d.open('person', function(err, coll) {
+d.open('person', true, function(err, p) {
 	if (err) { return console.log(err); }
-	console.log(coll);
+
+	var j = {name:'Johnny', age:32};
+	p.put(j);
+
+	console.log('EXISTS?', p.exists('bogusId') );
+	console.log('EXISTS?', p.exists(j._id) );
+
+	console.log('sleeping 0.5s...');
+
+	setTimeout(
+		function() {
+			var p = this;
+
+			var m = {name:'Mary', age:10};
+			p.put(m);
+
+			j.gender = 'male';
+			p.put(j);
+
+			console.log( p.all() );
+		}.bind(p),
+		500
+	);
+	
 });

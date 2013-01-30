@@ -1,10 +1,8 @@
-dumbdb.js
-=========
+# dumbdb.js
 
 
 
-summary
--------
+## summary
 
 dumbdb ain't couchdb.
 
@@ -26,28 +24,45 @@ does it scale? probably not. what's the purpose? fun and a little bit of learnin
 
 
 
-api
----
+## API
+
+### require
 
 the require returns a function which can receive configuration options, namely:
 
-  * saveEveryNSeconds  (defaults to 5)
-  * rootDir            (defaults to __dirname, i.e., the current directory)
-  * verbose            (defaults to false)
+  * `saveEveryNSeconds`  (defaults to 5)
+  * `rootDir`            (defaults to __dirname, i.e., the current directory collections are read/saved to)
+  * `verbose`            (defaults to false, iif true prints out additional info to stdout)
+  * `timestamps`         (defaults to true, sets _createdAt and _modifiedAt keys on objects)
+
+`var dumbdb = require('dumbdb')({verbose:true});`
+
+
+
+### create and open collection
 
 from that, you can either open or create a collection. (will be stored as `<collection_name>.ddb`)
 
+`dumbdb.create({String} collectionName, [{Boolean} openIfExistent], Function({String} err, {Collection} coll))`
+
+`dumbdb.open({String} collectionName, [{Boolean} createIfInexistent], Function({String} err, {Collection} coll))`
+
+
+
+### collection methods
+
 once you create/open a collection you get this interface:
 
-`{Boolean} exists({String} id)`
+`{Boolean} <coll>.exists({String} id)`
 
-`{Object|null} get({String} id)`
+`{Object|null} <coll>.get({String} id)`
 
-`{Object} put({Object} o)`
+`{Object} <coll>.put({Object} o)`
 
-`{Object[]} all()`
+`{Object[]} <coll>.all()`
 
-`{Object[]} mapReduce({Function({Object} doc, [{Function({String} key, {Array} values)})`
+`{Object[]} <coll>.mapReduce({Function({Object} doc, [{Function({String} key, {Array} values)})`
 
 the mapping function must invoke `this.emit(key, value)` to publish rows.
-reduction is optional. there are some auxiliary methods to aid in common reductions (`this.sum(arr)`, `this.factor(arr)`, `this.avg(arr)`).
+reduction is optional.
+there are some auxiliary methods to aid in common reductions (`this.sum(arr)`, `this.factor(arr)`, `this.avg(arr)`).
