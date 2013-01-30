@@ -99,6 +99,7 @@ var util = require('util');
 
 heap();
 
+//var d = require('dumbdb')({
 var d = require('./dumbdb')({
 	verbose:true
 });
