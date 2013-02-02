@@ -10,13 +10,19 @@
     var fs = require('fs');
 
 
+
+    // for measuring time
     var t;
     var start = function() {
         t = new Date().valueOf();
     };
-
     var stop = function(msg) {
         console.log(msg, (new Date().valueOf() - t));
+    };
+
+    // returns a new object
+    var clone = function(o) {
+        return JSON.parse( JSON.stringify(o) );
     };
 
 
@@ -33,50 +39,123 @@
 
 
 
-    var DumbdbCollection = function(name, path, data, cfg) {
+    var DumbdbCollection = function(name, path, d, revs, cfg) {
         this._name = name;
         this._path = path;
-        this._d    = data;
+        this._d    = d;
+        this._revs = revs;
         this._cfg  = cfg;
         this._boundSave = this._save.bind(this);
-
-        this._timer = setInterval(this._boundSave, this._cfg.saveEveryNSeconds * 1000);
+        this._length  = Object.keys(d).length;
+        this._lastId  = this._length;
+        this._isDirty = false;
+        this._timer   = setInterval(this._boundSave, this._cfg.saveEveryNSeconds * 1000);
     };
 
     DumbdbCollection.prototype = {
 
-        _timer:    undefined,
-        _name:     undefined,
-        _path:     undefined,
-        _d:        {},
-        _isDirty:  false,
-        _lastId:   0,
+        get: function(id, rev) {
+            if (rev !== undefined) {
+                return this._revs[id][rev];
+            }
 
-        get: function(id) {
             return this._d[id];
         },
 
-        put: function(o) {
-            if (!('_id' in o)) { o._id = this._getId(); }
-            if (this._cfg.timestamps) {
-                var ts = new Date().valueOf();
-                if (!('_createdAt' in o)) {
-                    o._createdAt = ts;
+        create: function(o) {
+            var id = o._id;
+
+            if (id !== undefined) {
+                if (this.exists(id)) {
+                    throw new Error('id already present!');
                 }
-                o._modifiedAt = ts;
             }
-            this._d[o._id] = o;
+            else {
+                id = this._getId();
+                o._id = id;
+            }
+
+            o._rev = 1;
+
+            var ts = new Date().valueOf();
+            o._createdAt = ts;
+            o._modifiedAt = ts;
+
+            this._d[id] = o;
+            this._revs[id] = [o];
+            ++this._length;
+
             this._isDirty = true;
-            return o;
+
+            return id;
         },
 
-        del: function(id) {
+        set: function(id, o) {
+            if (!('_id' in o) || id !== o._id) {
+                throw new Error('issues with id: not present or different!');
+            }
+
+            o = clone(o);
+
+            o._modifiedAt = new Date().valueOf();
+
+            this._d[id] = o;
+
+            var revArr = this._revs[id];
+            revArr.push(o);
+            o._rev = revArr.length;
+
+            this._isDirty = true;
+        },
+
+        put: function(o) {
+            if ('_id' in o) {
+                console.log('SET', o);
+                return this.set(o._id, o);
+            }
+            console.log('CREATE', o);
+            return this.create(o);
+        },
+
+        getRevisions: function(id) {
+            return this._revs[id];
+        },
+
+        //createBin
+        //setBin
+        //getBin
+
+        del: function(id, revsToo) {
             if (!this._d[id]) {
                 return false;
             }
             delete this._d[id];
+
+            if (revsToo) {
+                delete this._revs[id];
+            }
+
+            --this._length;
+
             this._isDirty = true;
             return true;
+        },
+
+        restore: function(id, rev) {
+            var revArr = this._revs[id];
+            if (!revArr) { return; }
+            var len = revArr.length;
+            if (rev === undefined) { rev = len; }
+            else if (rev < 1 || rev > len) {
+                throw new Error('inexistent revision!');
+            }
+            var o = revArr[rev - 1];
+            if (this._d[id] === undefined) {
+                ++this._length;
+            }
+            this._d[id] = o;
+            this._isDirty = true;
+            return o;
         },
 
         exists: function(id) {
@@ -84,10 +163,11 @@
         },
 
         all: function() {
-            var res = [];
+            var res = new Array(this._length);
 
+            var i = 0;
             for (var id in this._d) {
-                res.push( this._d[id] );
+                res[i] = this._d[id];
             }
 
             return res;
@@ -163,7 +243,7 @@
 
             do {
                 id = (++this._lastId).toString(32);
-            } while (this._d[id]);
+            } while (this._revs[id]);
             return id;
         },
 
@@ -171,8 +251,8 @@
             if (!this._isDirty && !force) { return cb ? cb(null) : null; }
             if (this._cfg.verbose) { start(); }
             this._isDirty = false;
-            fs.writeFile(this._path, JSON.stringify(this._d), function(err) {
-            //fs.writeFile(this._path, JSON.stringify(this._d, null, '\t'), function(err) {
+            //fs.writeFile(this._path, JSON.stringify([this._d, this._revs]), function(err) {
+            fs.writeFile(this._path, JSON.stringify([this._d, this._revs], null, '\t'), function(err) {
                 if (err) { return cb ? cb(err) : err; }
                 if (this._cfg.verbose) {
                     stop('Saved ' + this._name + ' in %d ms having ' + Object.keys(this._d).length + ' items.');
@@ -211,17 +291,17 @@
 
 
     var Dumbdb = function(cfg) {
+
+        this._collections = {};
+
         this._cfg = defaults({
             saveEveryNSeconds:  5,
-            rootDir:            __dirname,
-            verbose:            false,
-            timestamps:         true
+            rootDir:            '.',
+            verbose:            false
         }, cfg);
     };
 
     Dumbdb.prototype = {
-
-        _collections: {},
 
         _init: function(collName, isOpening, allowFallback, cb) {
             if (collName in this._collections) {
@@ -234,7 +314,9 @@
             var that = this;
 
             var thenDo = function(data) {
-                coll = new DumbdbCollection(collName, path, data || {}, that._cfg);
+                var d    = data ? data[0] : {};
+                var revs = data ? data[1] : {};
+                coll = new DumbdbCollection(collName, path, d, revs, that._cfg);
                 that._collections[collName] = coll;
 
                 if (!isOpening) { coll._save(true); }

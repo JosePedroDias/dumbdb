@@ -55,9 +55,15 @@ once you create/open a collection you get this interface:
 
 `{Boolean} <coll>.exists({String} id)`
 
-`{Object|null} <coll>.get({String} id)`
+`{Object|null} <coll>.get({String} id, [{Number} rev])`
 
 `{Object} <coll>.put({Object} o)`
+
+`{Boolean} <coll>.del({String} id)`
+
+`{Object[]} <coll>.getRevisions({String} id)`
+
+`{Boolean} <coll>.restore({String} id, [{Number} rev])`
 
 `{Object[]} <coll>.all()`
 
