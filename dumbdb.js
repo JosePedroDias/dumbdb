@@ -2,7 +2,9 @@
 
     'use strict';
 
-    
+    // TODO
+    // BiNARY OPS
+    // clone optional de i/o for local usage
 
     /*jshint node:true */
     /*global */
@@ -23,6 +25,33 @@
     // returns a new object
     var clone = function(o) {
         return JSON.parse( JSON.stringify(o) );
+    };
+
+    var idify = function(id) {
+        var chars = id.split('');
+        var chars2 = [];
+        var c, n;
+        for (var i = 0, f = chars.length; i < f; ++i) {
+            c = chars[i];
+            n = c.charCodeAt(0);
+            if      (n >= 97 && n <= 122) {} // a-z
+            else if (n >= 65 && n <= 90) {} // A-Z
+            else if (n >= 48 && n <= 57) {} // 0-9
+            else if (' _'.indexOf(c) !== -1) { c = '_'; }
+            else if ('áàã'.indexOf(c) !== -1) { c = 'a'; }
+            else if ('éê'.indexOf(c) !== -1) { c = 'e'; }
+            else if ('í'.indexOf(c) !== -1) { c = 'i'; }
+            else if ('óõô'.indexOf(c) !== -1) { c = 'o'; }
+            else if ('ú'.indexOf(c) !== -1) { c = 'u'; }
+            else if ('ÁÀÃ'.indexOf(c) !== -1) { c = 'A'; }
+            else if ('ÉÊ'.indexOf(c) !== -1) { c = 'E'; }
+            else if ('Í'.indexOf(c) !== -1) { c = 'I'; }
+            else if ('ÓÕÔ'.indexOf(c) !== -1) { c = 'O'; }
+            else if ('Ú'.indexOf(c) !== -1) { c = 'U'; }
+            else { continue; }
+            chars2.push(c);
+        }
+        return chars2.join('');
     };
 
 
@@ -65,9 +94,20 @@
         create: function(o) {
             var id = o._id;
 
+            // encapsulate primitive types and arrays
+            if (typeof o !== 'object' || o instanceof Array) {
+                var tmp = o;
+                o = {
+                    _data: tmp
+                };
+            }
+
             if (id !== undefined) {
                 if (this.exists(id)) {
                     throw new Error('id already present!');
+                }
+                else {
+                    id = idify(id);
                 }
             }
             else {
@@ -91,6 +131,10 @@
         },
 
         set: function(id, o) {
+            if (typeof o !== 'object') {
+                throw new Error('o must be an object!');
+            }
+
             if (!('_id' in o) || id !== o._id) {
                 throw new Error('issues with id: not present or different!');
             }
@@ -110,10 +154,10 @@
 
         put: function(o) {
             if ('_id' in o) {
-                console.log('SET', o);
+                //console.log('SET', o);
                 return this.set(o._id, o);
             }
-            console.log('CREATE', o);
+            //console.log('CREATE', o);
             return this.create(o);
         },
 
@@ -156,6 +200,23 @@
             this._d[id] = o;
             this._isDirty = true;
             return o;
+        },
+
+        discardRevisions: function(id) {
+            if (id === undefined) {
+                var keys = Object.keys(this._d);
+                for (var i = 0, f = keys.length; i < f; ++i) {
+                    this.discardRevisions(keys[i]);
+                }
+                return;
+            }
+
+            var o = this._d[id];
+            if (o === undefined) {
+                throw new Error('inexistent id!');
+            }
+            o._rev = 1;
+            this._revs[id] = [o];
         },
 
         exists: function(id) {
@@ -217,18 +278,39 @@
             return res2;
         },
 
+        clear: function() {
+            this._d = {};
+            this._revs = {};
+            this._isDirty = true;
+        },
+
         close: function() {
             clearInterval(this._timer);
             delete this._timer;
             this._dying = true;
             this._save();
             var warn = function() { throw 'Performed operation on a closed collection!'; };
+
             this.get = warn;
+            this.create = warn;
+            this.set = warn;
+            this.getRevisions = warn;
+            this.restore = warn;
+            this.discardRevisions = warn;
+            this.clear = warn;
             this.put = warn;
             this.mapReduce = warn;
             this.exists = warn;
             this.del = warn;
             this.all = warn;
+        },
+
+        drop: function() {
+            this.close();
+            fs.unlink(this._path);
+            if (this._cfg.verbose) {
+                console.log('collection ' + this._name + ' dropped.');
+            }
         },
 
 
@@ -295,98 +377,58 @@
         this._collections = {};
 
         this._cfg = defaults({
-            saveEveryNSeconds:  5,
-            rootDir:            '.',
-            verbose:            false
+            saveEveryNSeconds: 5,
+            dir:               '.',
+            verbose:           false
         }, cfg);
     };
 
     Dumbdb.prototype = {
 
-        _init: function(collName, isOpening, allowFallback, cb) {
+        open: function(collName, cb) {
+            collName = idify(collName);
+            
             if (collName in this._collections) {
                 return cb(null, this._collections[collName]);
             }
 
-            var path = [this._cfg.rootDir, '/', collName, '.ddb'].join('');
-            var data, coll;
+            var path = [this._cfg.dir, '/', collName, '.ddb'].join('');
+
+            if (this._cfg.verbose) { start(); }
 
             var that = this;
+            var existed = true;
 
-            var thenDo = function(data) {
-                var d    = data ? data[0] : {};
-                var revs = data ? data[1] : {};
-                coll = new DumbdbCollection(collName, path, d, revs, that._cfg);
+            fs.readFile(path, function(err, data) {
+                if (err) {
+                    data = '[{},{}]';
+                    existed = false;
+                    if (that._cfg.verbose) {
+                        console.log('called open() on inexistent collection, creating instead...');
+                    }
+                }
+                else if (that._cfg.verbose) {
+                    console.log('called open() on existing collection.');
+                }
+
+                try {
+                    data = JSON.parse(data);
+                } catch (ex) {
+                    console.error('problem parsing file contents!');
+                    return;
+                }
+
+                var coll = new DumbdbCollection(collName, path, data[0], data[1], that._cfg);
                 that._collections[collName] = coll;
 
-                if (!isOpening) { coll._save(true); }
+                if (!existed) { coll._save(true); }
+
+                if (that._cfg.verbose) {
+                    stop('Loaded ' + collName + ' in %d ms having ' + Object.keys(data).length + ' items.');
+                }
 
                 return cb(null, coll);
-            };
-
-            if (isOpening) {
-
-                if (this._cfg.verbose) { start(); }
-
-                fs.readFile(path, function(err, data) {
-                    if (err) {
-                        if (allowFallback) {
-                            if (that._cfg.verbose) {
-                                console.log('called open() on inexistent collection, creating instead...');
-                            }
-                            isOpening = false;
-                            return thenDo();
-                        }
-
-                        return cb('Problem reading collection ' + collName + '!');
-                    }
-
-                    try {
-                        data = JSON.parse(data);
-                    } catch (ex) {
-                        return cb('Problem parsing data from collection ' + collName + '!');
-                    }
-
-                    if (that._cfg.verbose) {
-                        stop('Loaded ' + collName + ' in %d ms having ' + Object.keys(data).length + ' items.');
-                    }
-
-                    thenDo(data);
-                });
-            }
-            else {
-                fs.stat(path, function(err, stats) {
-                    if (err) {
-                        if (!allowFallback) {
-                            return cb('Collection ' + collName + ' already exists or no previleges to write in dir/file!');
-                        }
-                        else {
-                            if (that._cfg.verbose) {
-                                console.log('called create() on existing collection, opening instead...');
-                            }
-                            return this._init(collName, true, false, cb);
-                        }
-                    }
-
-                    thenDo();
-                });
-            }
-        },
-
-        create: function(collName, openIfExistent, cb) {
-            if (!cb) {
-                cb = openIfExistent;
-                openIfExistent = false;
-            }
-            this._init(collName, false, openIfExistent, cb);
-        },
-
-        open: function(collName, createIfInexistent, cb) {
-            if (!cb) {
-                cb = createIfInexistent;
-                createIfInexistent = false;
-            }
-            this._init(collName, true, createIfInexistent, cb);
+            });
         }
     };
 

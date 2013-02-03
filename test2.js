@@ -3,7 +3,7 @@ var d = require('./dumbdb')({
 	verbose: true
 });
 
-d.open('person', true, function(err, p) {
+d.open('person', function(err, p) {
 	if (err) { return console.log(err); }
 
 	var j = {name:'Johnny', age:32};
