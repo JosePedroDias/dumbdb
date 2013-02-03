@@ -53,19 +53,35 @@ from that, you can either open or create a collection. (will be stored as `<coll
 
 once you create/open a collection you get this interface:
 
-`{Boolean} <coll>.exists({String} id)`
+`{Boolean} <coll>.exists({String} id)` to find if item exists (id is assigned)
 
-`{Object|null} <coll>.get({String} id, [{Number} rev])`
+`{Object|null} <coll>.get({String} id, [{Number} rev])` gets the object assigned to the id, optionally a revision other than the last one
 
-`{Object} <coll>.put({Object} o)`
+`{Object} <coll>.put({Object} o)` saves the given object, creating a new revision
 
-`{Boolean} <coll>.del({String} id)`
+`{Boolean} <coll>.del({String} id)` deletes the object
 
-`{Object[]} <coll>.getRevisions({String} id)`
 
-`{Boolean} <coll>.restore({String} id, [{Number} rev])`
 
-`{Object[]} <coll>.all()`
+`{Object[]} <coll>.getRevisions({String} id)` returns item revisions
+
+`{Number[]} <coll>.getRevisionDates({String} id)` returns item revision dates
+
+`{Boolean} <coll>.restore({String} id, [{Number} rev])` restores an object's revision
+
+`<coll>.discardRevisions()` discards revisions, making the actual one revision 1
+
+
+
+`clear()` removes all items from a collection
+
+`close()` closes a collection (no longer usable for the session)
+
+`drop()` closes and delete data from disk
+
+
+
+`{Object[]} <coll>.all()` returns all items of the collection
 
 `{Object[]} <coll>.mapReduce({Function({Object} doc, [{Function({String} key, {Array} values)})`
 

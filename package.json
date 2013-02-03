@@ -1,18 +1,15 @@
 {
   "name": "dumbdb",
-  "version": "0.0.6",
-  "description": "dumbdb ain't couchdb - it's an attempt to do the simplest nodb possible, using just core JS stuff.",
+  "version": "0.0.7",
+  "description": "an in-memory key-value store. stores revisions. kiss approach.",
   "main": "dumbdb.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git://github.com/JosePedroDias/dumbdb.git"
   },
   "keywords": [
     "nodb",
-    "key-value-store",
+    "key-value store",
     "node.js"
   ],
   "author": "José Pedro Dias <jose.pedro.dias@gmail.com>",

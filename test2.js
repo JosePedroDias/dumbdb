@@ -24,6 +24,18 @@ d.open('person', function(err, p) {
 			j.gender = 'male';
 			p.put(j);
 
+			p.append(j._id, {address:'lisbon', works:'no'});
+
+			console.log( p.getRevisionDates(j._id) );
+
+			p.discardRevisions(j._id);
+
+			//p.clear();
+
+			//p.drop();
+
+			//p.get('a');
+
 			console.log( p.all() );
 		}.bind(p),
 		500

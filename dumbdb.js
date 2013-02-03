@@ -152,6 +152,17 @@
             this._isDirty = true;
         },
 
+        append: function(id, oAppend) {
+            var o = this.get(id);
+            if (o === undefined) {
+                throw new Error('item not found!');
+            }
+            for (var k in oAppend) {
+                o[k] = oAppend[k];
+            }
+            this.set(id, o);
+        },
+
         put: function(o) {
             if ('_id' in o) {
                 //console.log('SET', o);
@@ -163,6 +174,19 @@
 
         getRevisions: function(id) {
             return this._revs[id];
+        },
+
+        getRevisionDates: function(id) {
+            var revs = this._revs[id];
+            if (revs === undefined) {
+                throw new Error('item not found!');
+            }
+            var i, f = revs.length;
+            var dates = new Array(f);
+            for (i = 0; i < f; ++i) {
+                dates[i] = revs[i]._modifiedAt;
+            }
+            return dates;
         },
 
         //createBin
@@ -217,6 +241,7 @@
             }
             o._rev = 1;
             this._revs[id] = [o];
+            this._isDirty = true;
         },
 
         exists: function(id) {
@@ -284,29 +309,25 @@
             this._isDirty = true;
         },
 
-        close: function() {
+        close: function(skipSave) {
             clearInterval(this._timer);
             delete this._timer;
             this._dying = true;
-            this._save();
+            if (!skipSave) {
+                this._save();
+            }
+            
             var warn = function() { throw 'Performed operation on a closed collection!'; };
 
-            this.get = warn;
-            this.create = warn;
-            this.set = warn;
-            this.getRevisions = warn;
-            this.restore = warn;
-            this.discardRevisions = warn;
-            this.clear = warn;
-            this.put = warn;
-            this.mapReduce = warn;
-            this.exists = warn;
-            this.del = warn;
-            this.all = warn;
+            // make sure calling these methods throws exception...
+            var that = this;
+            'all append clear create del discardRevisions exists get getRevisionDates getRevisions mapReduce put restore set'.split(' ').forEach(function(methodName) {
+                that[methodName] = warn;
+            });
         },
 
         drop: function() {
-            this.close();
+            this.close(true);
             fs.unlink(this._path);
             if (this._cfg.verbose) {
                 console.log('collection ' + this._name + ' dropped.');
@@ -387,7 +408,9 @@
 
         open: function(collName, cb) {
             collName = idify(collName);
-            
+
+            if (!cb) { cb = function() {}; }
+
             if (collName in this._collections) {
                 return cb(null, this._collections[collName]);
             }
