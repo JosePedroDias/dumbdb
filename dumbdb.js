@@ -85,7 +85,7 @@
 
         get: function(id, rev) {
             if (rev !== undefined) {
-                return this._revs[id][rev];
+                return this._revs[id][rev - 1];
             }
 
             return this._d[id];
@@ -147,9 +147,12 @@
 
             var revArr = this._revs[id];
             revArr.push(o);
-            o._rev = revArr.length;
+            var rev = revArr.length;
+            o._rev = rev;
 
             this._isDirty = true;
+
+            return rev;
         },
 
         append: function(id, oAppend) {

@@ -73,11 +73,11 @@ once you create/open a collection you get this interface:
 
 
 
-`clear()` removes all items from a collection
+`<coll>.clear()` removes all items from a collection
 
-`close()` closes a collection (no longer usable for the session)
+`<coll>.close()` closes a collection (no longer usable for the session)
 
-`drop()` closes and delete data from disk
+`<coll>.drop()` closes and delete data from disk
 
 
 
