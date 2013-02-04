@@ -139,7 +139,17 @@
                 throw new Error('issues with id: not present or different!');
             }
 
+            var oldO = this._revs[id];
+            if (!oldO) {
+                throw new Error('inexistent object!');
+            }
+            oldO = oldO[0];
+
             o = clone(o);
+
+            if (!('_createdAt' in o)) {
+                o._createdAt = oldO._createdAt;
+            }
 
             o._modifiedAt = new Date().valueOf();
 
